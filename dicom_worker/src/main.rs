@@ -36,7 +36,7 @@ pub enum DType {
     I32,
     U32,
     F32,
-    U64,
+    F64,
 }
 
 pub struct Volume {
@@ -79,10 +79,7 @@ pub fn handle_command(cmd: Command, state: &mut Option<Volume>) -> Result<Value,
             }))
         }
         Command::Status => match &state {
-            None => Ok(serde_json::json!({
-                "ok": false,
-                "error": "volume not loaded."
-            })),
+            None => Err("volume not loaded.".into()),
             Some(vol) => Ok(serde_json::json!({
                 "ok": true,
                 "parameters": {
