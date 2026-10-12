@@ -1,0 +1,7 @@
+# Cargo - will have compiled files and executables
+debug
+target
+
+# python side
+.venv
+*pycache*
