@@ -1,3 +1,4 @@
 # Cargo - will have compiled files and executables
 debug
 target
+/testdata
