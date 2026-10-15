@@ -1,4 +1,4 @@
-use crate::dtype::DType;
+use crate::dtype::{DType, Sample};
 use memmap2::Mmap;
 use std::fs::File;
 use std::io::Error;
@@ -52,5 +52,20 @@ impl Volume {
                 })
             }
         }
+    }
+
+    pub fn edge_values<T: Sample>(&self) -> (f64, f64) {
+        let mut min: f64 = f64::INFINITY;
+        let mut max: f64 = f64::NEG_INFINITY;
+
+        for chunk in self.map.chunks_exact(T::SIZE) {
+            let raw = T::read(chunk);
+            let value = raw * self.slope + self.intercept;
+
+            min = min.min(value);
+            max = max.max(value);
+        }
+
+        (min, max)
     }
 }

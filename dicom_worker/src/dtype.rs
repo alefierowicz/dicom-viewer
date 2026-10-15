@@ -23,3 +23,29 @@ impl DType {
         }
     }
 }
+
+pub trait Sample {
+    const SIZE: usize; // size of one value as X bytes
+    fn read(chunk: &[u8]) -> f64;
+}
+
+macro_rules! impl_sample {
+    ($t: ty) => {
+        impl Sample for $t {
+            const SIZE: usize = std::mem::size_of::<$t>();
+
+            fn read(bytes: &[u8]) -> f64 {
+                <$t>::from_le_bytes(bytes.try_into().unwrap()) as f64
+            }
+        }
+    };
+}
+
+impl_sample!(i8);
+impl_sample!(u8);
+impl_sample!(i16);
+impl_sample!(u16);
+impl_sample!(i32);
+impl_sample!(u32);
+impl_sample!(f32);
+impl_sample!(f64);
