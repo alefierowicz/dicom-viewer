@@ -58,7 +58,7 @@ impl Volume {
         let mut min: f64 = f64::INFINITY;
         let mut max: f64 = f64::NEG_INFINITY;
 
-        for chunk in self.map.chunks_exact(T::SIZE) {
+        for chunk in self.map.chunks_exact(std::mem::size_of::<T>()) {
             let raw = T::read(chunk);
             let value = raw * self.slope + self.intercept;
 

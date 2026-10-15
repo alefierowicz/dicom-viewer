@@ -25,15 +25,12 @@ impl DType {
 }
 
 pub trait Sample {
-    const SIZE: usize; // size of one value as X bytes
     fn read(chunk: &[u8]) -> f64;
 }
 
 macro_rules! impl_sample {
     ($t: ty) => {
         impl Sample for $t {
-            const SIZE: usize = std::mem::size_of::<$t>();
-
             fn read(bytes: &[u8]) -> f64 {
                 <$t>::from_le_bytes(bytes.try_into().unwrap()) as f64
             }
