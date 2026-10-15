@@ -12,24 +12,18 @@ pub fn handle_command(cmd: Command, state: &mut Option<Volume>) -> Result<Value,
             intercept,
             slope,
         } => {
-            // this gets returned out of order in the JSON since its a sorted tree map
-            // doesnt matter when reading it via serializers though so whatever
-            *state = Some(Volume {
-                dtype,
-                n: shape[0],
-                h: shape[1],
-                w: shape[2],
-                slope,
-                intercept,
-            });
+            *state = Some(Volume::open(&path, dtype, shape, slope, intercept)?);
 
             Ok(serde_json::json!({
                 "ok": true,
-                "path": path,
-                "dtype": dtype,
-                "shape": shape,
-                "intercept": intercept,
-                "slope": slope
+                "msg": "volume loaded to memory successfully.",
+                "parameters": {
+                    "path": path,
+                    "dtype": dtype,
+                    "shape": shape,
+                    "intercept": intercept,
+                    "slope": slope
+                }
             }))
         }
         Command::Status => match &state {

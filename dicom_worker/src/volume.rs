@@ -1,4 +1,8 @@
 use crate::dtype::DType;
+use memmap2::Mmap;
+use std::fs::File;
+use std::io::Error;
+
 pub struct Volume {
     pub dtype: DType,
     pub n: usize,
@@ -6,4 +10,47 @@ pub struct Volume {
     pub w: usize,
     pub slope: f64,
     pub intercept: f64,
+    pub map: Mmap,
+}
+
+impl Volume {
+    pub fn open(
+        path: &str,
+        dtype: DType,
+        shape: [usize; 3],
+        slope: f64,
+        intercept: f64,
+    ) -> Result<Volume, String> {
+        if shape.contains(&0) {
+            Err(String::from("invalid shape"))
+        } else {
+            let file = File::open(&path)
+                .map_err(|e: Error| -> String { format!("cannot open file {path}: {e}") })?;
+
+            // the file isnt modified whatsoever by the worker.
+            // trust me bro
+            let map = unsafe { Mmap::map(&file) }.map_err(|e| -> String {
+                format! {"failure mapping file to memory: {e}"}
+            })?;
+
+            let expected = shape.iter().product::<usize>() * dtype.size();
+            if map.len() != expected {
+                Err(format!(
+                    "invalid file size - expected {} bytes, got {} bytes",
+                    expected,
+                    map.len()
+                ))
+            } else {
+                Ok(Volume {
+                    dtype,
+                    n: shape[0],
+                    h: shape[1],
+                    w: shape[2],
+                    slope,
+                    intercept,
+                    map,
+                })
+            }
+        }
+    }
 }
