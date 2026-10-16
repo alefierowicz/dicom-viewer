@@ -1,11 +1,32 @@
-use core::error;
-
-use dicom_object::DefaultDicomObject;
 use eframe::egui;
 #[derive(Default)]
 struct ViewerApp {
-    file: Option<DefaultDicomObject>,
-    error_msg: Option<String>,
+    file_name: Option<String>,
+}
+
+impl ViewerApp {
+    fn show_landing(&mut self, ui: &mut egui::Ui) {
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(ui.available_height() / 3.0);
+                ui.heading("DICOM viewer");
+                ui.add_space(12.0);
+
+                if ui.button("open file").clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("DICOM", &["dcm"])
+                        .pick_file()
+                    {
+                        let name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_default();
+                        self.file_name = Some(name);
+                    }
+                }
+            })
+        });
+    }
 }
 
 impl eframe::App for ViewerApp {
@@ -13,25 +34,11 @@ impl eframe::App for ViewerApp {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("DICOM Viewer");
 
-            if self.file.is_some() {
-                ui.label("DICOM file loaded");
-            }
-            if self.error_msg.is_some() {
-                ui.label(format!("{:?}", self.error_msg));
-            }
-            if ui.button("Open file").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("DICOM", &["dcm"])
-                    .pick_file()
-                {
-                    match dicom_object::open_file(&path) {
-                        Ok(obj) => {
-                            self.file = Some(obj);
-                            self.error_msg = None
-                        }
-                        Err(e) => self.error_msg = Some(e.to_string()),
-                    }
-                }
+            if self.file_name.is_none() {
+                self.show_landing(ui);
+            } else {
+                todo!();
+                // self.show_main(ui);
             }
         });
     }
