@@ -27,6 +27,23 @@ impl ViewerApp {
             })
         });
     }
+
+    fn show_main(&mut self, ui: &mut egui::Ui) {
+        let name = self.file_name.as_deref().unwrap_or("");
+
+        egui::Panel::left("metadata")
+            .resizable(true)
+            .default_size(380.0)
+            .show(ui, |ui| {
+                ui.heading(name);
+                ui.separator();
+                ui.label("metadata will go here");
+            });
+
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.label("image viewer will go here");
+        });
+    }
 }
 
 impl eframe::App for ViewerApp {
@@ -37,8 +54,7 @@ impl eframe::App for ViewerApp {
             if self.file_name.is_none() {
                 self.show_landing(ui);
             } else {
-                todo!();
-                // self.show_main(ui);
+                self.show_main(ui);
             }
         });
     }
