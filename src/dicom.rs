@@ -1,6 +1,6 @@
 use dicom_core::{DataDictionary, VR};
 use dicom_dictionary_std::{StandardDataDictionary, tags::PIXEL_DATA};
-use dicom_object::DefaultDicomObject;
+use dicom_object::{DefaultDicomObject, mem::InMemElement};
 use std::path::Path;
 pub struct LoadedFile {
     pub name: String,
@@ -15,6 +15,35 @@ pub struct MetaRow {
     value: String,
 }
 
+fn is_binary(vr: VR) -> bool {
+    matches!(
+        vr,
+        VR::OB | VR::OW | VR::OD | VR::OF | VR::OL | VR::OV | VR::UN
+    )
+}
+
+pub fn display_value(element: &InMemElement) -> Option<String> {
+    if let Some(items) = element.items() {
+        return Some(format!("[{} values]", items.len()));
+    } else if is_binary(element.vr()) {
+        return Some(match element.header().len.get() {
+            // description of the binary since we cant really display it
+            Some(n) => format!("[binary, {} bytes]", n),
+            None => format!("[binary]"),
+        });
+    } else {
+        match element.to_str() {
+            Ok(val) => {
+                if val.trim().is_empty() {
+                    return None; // none if empty
+                }
+                Some(val.trim().to_string())
+            }
+            Err(_) => None,
+        }
+    }
+}
+
 pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
     let elements = file.iter();
     let mut out: Vec<MetaRow> = Vec::<MetaRow>::new();
@@ -24,32 +53,10 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
         if tag == PIXEL_DATA {
             continue;
         }
-        let value = match element.items() {
-            // if its a sequence of values, return just an indicator for now
-            Some(arr) => format!("[{} values]", arr.len()),
-            None => {
-                // checking if its a binary
-                if matches!(
-                    element.vr(),
-                    VR::OB | VR::OW | VR::OD | VR::OF | VR::OL | VR::OV | VR::UN
-                ) {
-                    match element.header().len.get() {
-                        // description of the binary since we cant really display it
-                        Some(n) => format!("[binary, {} bytes]", n),
-                        None => format!("[binary]"),
-                    }
-                } else {
-                    match element.to_str() {
-                        Ok(val) => {
-                            if val.trim().is_empty() {
-                                continue; // skipping empties
-                            }
-                            val.trim().to_string()
-                        }
-                        Err(_) => continue,
-                    }
-                }
-            }
+
+        let value = match display_value(&element) {
+            Some(val) => val,
+            None => continue,
         };
 
         let name = match StandardDataDictionary.by_tag(tag) {
