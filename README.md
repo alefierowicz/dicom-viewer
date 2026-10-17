@@ -1,8 +1,18 @@
-## Projekt #1
-Celem zadania jest zapoznanie się ze strukturą plików medycznych DICOM oraz metadanymi zawartymi w nagłówku.
-Należy przygotować prostą przeglądarkę obrazów DICOM w Pythonie (np. z użyciem bibliotek pydicom, matplotlib, opencv lub tkinter).
+## Przeglądarka DICOM
 
-### Wymagania
+Przeglądarka obrazów medycznych `.dcm` wraz z ich metadanymi.
+> Po uzgodnieniu z prowadzącym, projekt realizowany w języku **rust**.
+
+## Stack
+| Biblioteka | Zastosowanie |
+|---|---|
+| [`eframe` / `egui`](https://docs.rs/egui) | GUI |
+| [`dicom-object`](https://docs.rs/dicom-object) | odczyt pliku & metadanych DICOM |
+| [`dicom-dictionary-std`](https://docs.rs/dicom-dictionary-std) | standardowy słownik nazw DICOM |
+| [`dicom-pixeldata`](https://docs.rs/dicom-pixeldata) | przetwarzanie danych pikselowych |
+| [`rfd`](https://docs.rs/rfd) | dialog do wyboru pliku |
+
+#### Wymagania funkcjonalne
 - Użytkownik wskazuje plik DICOM (.dcm) z dysku.
 - Program poprawnie wczytuje dane obrazu.
 - Obraz wyświetlany jest w oknie. Użytkownik może powiększać obraz oraz przesuwać. Przy dużym powiększeniu gdy widać pojedyncze piksele, to na pikselach pojawia się napis z wartością piksela (np. 128, 128, 128 w przypadku RGB, albo np. 256 w przypadku obrazu 8-bit odcienie szarości).
