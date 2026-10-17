@@ -10,9 +10,9 @@ pub struct LoadedFile {
 }
 
 pub struct MetaRow {
-    tag: String,
-    name: String,
-    value: String,
+    pub tag: String,
+    pub name: String,
+    pub value: String,
 }
 
 fn is_binary(vr: VR) -> bool {
@@ -24,12 +24,12 @@ fn is_binary(vr: VR) -> bool {
 
 pub fn display_value(element: &InMemElement) -> Option<String> {
     if let Some(items) = element.items() {
-        return Some(format!("[{} values]", items.len()));
+        return Some(format!("[{} items]", items.len()));
     } else if is_binary(element.vr()) {
         return Some(match element.header().len.get() {
             // description of the binary since we cant really display it
             Some(n) => format!("[binary, {} bytes]", n),
-            None => format!("[binary]"),
+            None => "[binary]".to_string(),
         });
     } else {
         match element.to_str() {
@@ -54,7 +54,7 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
             continue;
         }
 
-        let value = match display_value(&element) {
+        let value = match display_value(element) {
             Some(val) => val,
             None => continue,
         };
@@ -64,7 +64,7 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
             None => String::from("Unknown"),
         };
 
-        println!("{} | {} | {}", tag, name, value);
+        // println!("{} | {} | {}", tag, name, value);
         out.push(MetaRow {
             tag: tag.to_string(),
             name,
