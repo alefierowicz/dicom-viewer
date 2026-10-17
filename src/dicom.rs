@@ -1,4 +1,4 @@
-use dicom_core::DataDictionary;
+use dicom_core::{DataDictionary, VR};
 use dicom_dictionary_std::{StandardDataDictionary, tags::PIXEL_DATA};
 use dicom_object::DefaultDicomObject;
 use std::path::Path;
@@ -24,14 +24,32 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
         if tag == PIXEL_DATA {
             continue;
         }
-        let value = match element.to_str() {
-            Ok(val) => {
-                if val.trim().is_empty() {
-                    continue;
-                };
-                val.trim().to_string()
+        let value = match element.items() {
+            // if its a sequence of values, return just an indicator for now
+            Some(arr) => format!("[{} values]", arr.len()),
+            None => {
+                // checking if its a binary
+                if matches!(
+                    element.vr(),
+                    VR::OB | VR::OW | VR::OD | VR::OF | VR::OL | VR::OV | VR::UN
+                ) {
+                    match element.header().len.get() {
+                        // description of the binary since we cant really display it
+                        Some(n) => format!("[binary, {} bytes]", n),
+                        None => format!("[binary]"),
+                    }
+                } else {
+                    match element.to_str() {
+                        Ok(val) => {
+                            if val.trim().is_empty() {
+                                continue; // skipping empties
+                            }
+                            val.trim().to_string()
+                        }
+                        Err(_) => continue,
+                    }
+                }
             }
-            Err(_) => continue,
         };
 
         let name = match StandardDataDictionary.by_tag(tag) {
@@ -39,7 +57,7 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
             None => String::from("Unknown"),
         };
 
-        println!("{} | {} |{}", tag, name, value);
+        println!("{} | {} | {}", tag, name, value);
         out.push(MetaRow {
             tag: tag.to_string(),
             name,
@@ -56,6 +74,7 @@ pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
     let metadata = collect_metadata(&obj);
+
     Ok(LoadedFile {
         name,
         obj,
