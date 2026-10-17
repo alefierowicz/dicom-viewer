@@ -1,7 +1,7 @@
-use dicom_dictionary_std::tags::PIXEL_DATA;
+use dicom_core::DataDictionary;
+use dicom_dictionary_std::{StandardDataDictionary, tags::PIXEL_DATA};
 use dicom_object::DefaultDicomObject;
 use std::path::Path;
-
 pub struct LoadedFile {
     pub name: String,
     pub obj: DefaultDicomObject,
@@ -20,12 +20,10 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
     let mut out: Vec<MetaRow> = Vec::<MetaRow>::new();
 
     for element in elements {
-        let header = element.header();
-        if header.tag == PIXEL_DATA {
+        let tag = element.header().tag;
+        if tag == PIXEL_DATA {
             continue;
         }
-        let tag = header.tag.to_string();
-
         let value = match element.to_str() {
             Ok(val) => {
                 if val.trim().is_empty() {
@@ -35,10 +33,16 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
             }
             Err(_) => continue,
         };
-        println!("{} | {}", &tag, &value);
+
+        let name = match StandardDataDictionary.by_tag(tag) {
+            Some(entry) => entry.alias.to_string(),
+            None => String::from("Unknown"),
+        };
+
+        println!("{} | {} |{}", tag, name, value);
         out.push(MetaRow {
-            tag,
-            name: String::from(""),
+            tag: tag.to_string(),
+            name,
             value,
         });
     }
