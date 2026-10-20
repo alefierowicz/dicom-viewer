@@ -9,6 +9,7 @@ pub struct LoadedFile {
     pub metadata: Vec<MetaRow>, // i know its a duplicate but its better than re-rendering metadata every tick
     // todo: workaround
     pub volume: Volume,
+    pub min_max: (f64, f64),
 }
 
 pub struct MetaRow {
@@ -77,19 +78,21 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
 }
 
 pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
-    let obj = dicom_object::open_file(path).map_err(|e| e.to_string())?;
+    let obj: dicom_object::FileDicomObject<dicom_object::InMemDicomObject> =
+        dicom_object::open_file(path).map_err(|e| e.to_string())?;
     let name = path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
     let metadata = collect_metadata(&obj);
+
     let volume =
         Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
-
     Ok(LoadedFile {
         name,
         obj,
         metadata,
+        min_max: volume.value_range(),
         volume,
     })
 }

@@ -12,6 +12,8 @@ pub struct Volume {
     w: u32,
     slope: f64,
     intercept: f64,
+    min: f64,
+    max: f64,
     data: Vec<u8>,
 }
 
@@ -30,7 +32,9 @@ impl Volume {
 
         (min, max)
     }
-
+    pub fn value_range(&self) -> (f64, f64) {
+        (self.min, self.max)
+    }
     pub fn build(obj: &FileDicomObject<InMemDicomObject>) -> Result<Volume, String> {
         let decoded = obj.decode_pixel_data().map_err(|e| -> String {
             format! {"failure decoding pixel data: {e}"}
@@ -74,7 +78,7 @@ impl Volume {
         };
 
         println!(
-            "shape: [{}x{}x{}], intercept: {}, slope: {}, min: {}, max: {}",
+            "[INFO]shape: [{}x{}x{}], intercept: {}, slope: {}, min: {}, max: {}",
             n, h, w, intercept, slope, min_max.0, min_max.1
         );
 
@@ -85,6 +89,8 @@ impl Volume {
             dtype,
             slope,
             intercept,
+            min: min_max.0,
+            max: min_max.1,
             data,
         })
     }
