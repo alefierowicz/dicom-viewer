@@ -7,6 +7,16 @@ pub enum DType {
     U32,
 }
 
+impl DType {
+    pub fn size(&self) -> usize {
+        match self {
+            DType::I8 | DType::U8 => 1,
+            DType::I16 | DType::U16 => 2,
+            DType::I32 | DType::U32 => 4,
+        }
+    }
+}
+
 pub trait Sample {
     fn read(chunk: &[u8]) -> f64;
 }

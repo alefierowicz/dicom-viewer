@@ -7,9 +7,9 @@ use dicom_pixeldata::{
 
 pub struct Volume {
     dtype: DType,
-    n: u32,
-    h: u32,
-    w: u32,
+    n: usize,
+    h: usize,
+    w: usize,
     slope: f64,
     intercept: f64,
     min: f64,
@@ -45,9 +45,9 @@ impl Volume {
             return Err("more samples per pixel than 1 is not currently supported.".into());
         }
 
-        let n: u32 = decoded.number_of_frames();
-        let h: u32 = decoded.rows();
-        let w: u32 = decoded.columns();
+        let n: usize = decoded.number_of_frames() as usize;
+        let h: usize = decoded.rows() as usize;
+        let w: usize = decoded.columns() as usize;
 
         let rescale = decoded
             .rescale()
@@ -93,5 +93,44 @@ impl Volume {
             max: min_max.1,
             data,
         })
+    }
+
+    fn render_bytes<T: Sample>(
+        bytes: &[u8],
+        slope: &f64,
+        intercept: &f64,
+        lo: f64,
+        hi: f64,
+    ) -> Vec<u8> {
+        let mut out: Vec<u8> = Vec::with_capacity(bytes.len() / std::mem::size_of::<T>());
+
+        for chunk in bytes.chunks_exact(std::mem::size_of::<T>()) {
+            let value = T::read(chunk) * slope + intercept;
+            let t = (value - lo) / (hi - lo);
+
+            out.push((t.clamp(0.0, 1.0) * 255.0).round() as u8);
+        }
+        out
+    }
+
+    pub fn render_frame(&self, frame: usize, lo: f64, hi: f64) -> Option<Vec<u8>> {
+        if (frame >= self.n || hi <= lo) {
+            return None;
+        }
+
+        let frame_len = self.w * self.h * self.dtype.size();
+        let start = frame * frame_len;
+
+        let bytes = &self.data[start..start + frame_len];
+        let out = match self.dtype {
+            DType::I8 => Volume::render_bytes::<i8>(bytes, &self.slope, &self.intercept, lo, hi),
+            DType::U8 => Volume::render_bytes::<u8>(bytes, &self.slope, &self.intercept, lo, hi),
+            DType::I16 => Volume::render_bytes::<i16>(bytes, &self.slope, &self.intercept, lo, hi),
+            DType::U16 => Volume::render_bytes::<u16>(bytes, &self.slope, &self.intercept, lo, hi),
+            DType::I32 => Volume::render_bytes::<i32>(bytes, &self.slope, &self.intercept, lo, hi),
+            DType::U32 => Volume::render_bytes::<u32>(bytes, &self.slope, &self.intercept, lo, hi),
+        };
+
+        Some(out)
     }
 }
