@@ -1,6 +1,7 @@
 mod app;
 mod dicom;
-
+mod dtype;
+mod volume;
 fn main() -> eframe::Result {
     eframe::run_native(
         "DICOM Viewer",

@@ -19,9 +19,8 @@ impl ViewerApp {
                         .num_columns(3)
                         .striped(true)
                         .show(ui, |ui| {
-                            for row in &file.metadata
+                            for row in file.metadata.iter().filter(|val| val.name != "Unknown")
                             // todo: make this into a checkmark for future use so that its not swamped with UNKNOWNS
-                            /* .iter().filter(|val| val.name != "Unknown") */
                             {
                                 ui.monospace(&row.tag);
                                 ui.label(&row.name);
