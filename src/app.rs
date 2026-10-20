@@ -8,7 +8,9 @@ use crate::dicom::{LoadedFile, load_file};
 #[derive(Default)]
 pub struct ViewerApp {
     loaded: Option<LoadedFile>,
+    texture: Option<egui::TextureHandle>,
     error: Option<String>,
+    view: Option<viewer::View>,
 }
 
 impl ViewerApp {
@@ -23,7 +25,9 @@ impl ViewerApp {
         match load_file(&path) {
             Ok(file) => {
                 self.loaded = Some(file);
+                self.texture = None;
                 self.error = None;
+                self.view = None;
             }
             Err(msg) => self.error = Some(msg),
         }

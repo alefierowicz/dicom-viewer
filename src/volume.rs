@@ -1,4 +1,8 @@
-use crate::dtype::{DType, Sample};
+mod getters;
+mod render;
+mod visit;
+
+use crate::dtype::DType;
 use dicom_object::{FileDicomObject, InMemDicomObject};
 use dicom_pixeldata::{
     PixelDecoder,
@@ -18,23 +22,7 @@ pub struct Volume {
 }
 
 impl Volume {
-    pub fn edge_values<T: Sample>(data: &[u8], slope: &f64, intercept: &f64) -> (f64, f64) {
-        let mut min: f64 = f64::INFINITY;
-        let mut max: f64 = f64::NEG_INFINITY;
-
-        for chunk in data.chunks_exact(std::mem::size_of::<T>()) {
-            let raw = T::read(chunk);
-            let value = raw * slope + intercept;
-
-            min = min.min(value);
-            max = max.max(value);
-        }
-
-        (min, max)
-    }
-    pub fn value_range(&self) -> (f64, f64) {
-        (self.min, self.max)
-    }
+    // builder
     pub fn build(obj: &FileDicomObject<InMemDicomObject>) -> Result<Volume, String> {
         let decoded = obj.decode_pixel_data().map_err(|e| -> String {
             format! {"failure decoding pixel data: {e}"}
@@ -68,19 +56,11 @@ impl Volume {
                 return Err(format!("unsupported pixel format: {bits} bits, {repr:?}"));
             }
         };
-        let min_max: (f64, f64) = match dtype {
-            DType::I8 => Volume::edge_values::<i8>(&data, &slope, &intercept),
-            DType::U8 => Volume::edge_values::<u8>(&data, &slope, &intercept),
-            DType::I16 => Volume::edge_values::<i16>(&data, &slope, &intercept),
-            DType::U16 => Volume::edge_values::<u16>(&data, &slope, &intercept),
-            DType::I32 => Volume::edge_values::<i32>(&data, &slope, &intercept),
-            DType::U32 => Volume::edge_values::<u32>(&data, &slope, &intercept),
-        };
-
-        println!(
-            "[INFO]shape: [{}x{}x{}], intercept: {}, slope: {}, min: {}, max: {}",
-            n, h, w, intercept, slope, min_max.0, min_max.1
-        );
+        let (mut min, mut max) = (f64::INFINITY, f64::NEG_INFINITY);
+        Self::visit(dtype, &data, slope, intercept, |v| {
+            min = min.min(v);
+            max = max.max(v);
+        });
 
         Ok(Volume {
             n,
@@ -89,48 +69,9 @@ impl Volume {
             dtype,
             slope,
             intercept,
-            min: min_max.0,
-            max: min_max.1,
+            min,
+            max,
             data,
         })
-    }
-
-    fn render_bytes<T: Sample>(
-        bytes: &[u8],
-        slope: &f64,
-        intercept: &f64,
-        lo: f64,
-        hi: f64,
-    ) -> Vec<u8> {
-        let mut out: Vec<u8> = Vec::with_capacity(bytes.len() / std::mem::size_of::<T>());
-
-        for chunk in bytes.chunks_exact(std::mem::size_of::<T>()) {
-            let value = T::read(chunk) * slope + intercept;
-            let t = (value - lo) / (hi - lo);
-
-            out.push((t.clamp(0.0, 1.0) * 255.0).round() as u8);
-        }
-        out
-    }
-
-    pub fn render_frame(&self, frame: usize, lo: f64, hi: f64) -> Option<Vec<u8>> {
-        if (frame >= self.n || hi <= lo) {
-            return None;
-        }
-
-        let frame_len = self.w * self.h * self.dtype.size();
-        let start = frame * frame_len;
-
-        let bytes = &self.data[start..start + frame_len];
-        let out = match self.dtype {
-            DType::I8 => Volume::render_bytes::<i8>(bytes, &self.slope, &self.intercept, lo, hi),
-            DType::U8 => Volume::render_bytes::<u8>(bytes, &self.slope, &self.intercept, lo, hi),
-            DType::I16 => Volume::render_bytes::<i16>(bytes, &self.slope, &self.intercept, lo, hi),
-            DType::U16 => Volume::render_bytes::<u16>(bytes, &self.slope, &self.intercept, lo, hi),
-            DType::I32 => Volume::render_bytes::<i32>(bytes, &self.slope, &self.intercept, lo, hi),
-            DType::U32 => Volume::render_bytes::<u32>(bytes, &self.slope, &self.intercept, lo, hi),
-        };
-
-        Some(out)
     }
 }

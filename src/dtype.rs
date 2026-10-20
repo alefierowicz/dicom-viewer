@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, Debug)]
 pub enum DType {
     I8,
     U8,
