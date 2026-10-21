@@ -7,7 +7,6 @@ pub struct LoadedFile {
     pub name: String,
     pub obj: DefaultDicomObject,
     pub metadata: Vec<MetaRow>, // i know its a duplicate but its better than re-rendering metadata every tick
-    // todo: workaround
     pub volume: Volume,
     pub min_max: (f64, f64),
 }

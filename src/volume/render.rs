@@ -21,4 +21,19 @@ impl Volume {
         });
         Some(out)
     }
+
+    pub fn pixel_value(&self, frame: usize, x: usize, y: usize) -> Option<f64> {
+        if !(frame < self.n || x < self.w || y < self.h) {
+            return None;
+        }
+
+        let size = self.dtype.size();
+        let idx = frame * self.h * self.w + y * self.w + x;
+
+        let start = size * idx;
+        let pixel = self.data.get(start..start + size)?;
+        let mut value = None;
+        Self::visit(self.dtype, pixel, 1.0, 0.0, |v| value = Some(v));
+        value
+    }
 }
