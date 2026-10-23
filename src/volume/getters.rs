@@ -15,4 +15,7 @@ impl Volume {
     pub fn height(&self) -> usize {
         self.h
     }
+    pub fn is_color(&self) -> bool {
+        self.samples == 3
+    }
 }

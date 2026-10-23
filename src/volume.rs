@@ -5,45 +5,35 @@ mod visit;
 use crate::dtype::DType;
 use dicom_object::{FileDicomObject, InMemDicomObject};
 use dicom_pixeldata::{
+    PhotometricInterpretation::{Monochrome1, Monochrome2, Rgb},
     PixelDecoder,
     PixelRepresentation::{Signed, Unsigned},
+    PlanarConfiguration,
 };
 
+pub enum PixelValue {
+    Gray(f64),
+    Rgb(u8, u8, u8),
+}
+
 pub struct Volume {
-    dtype: DType,
-    n: usize,
-    h: usize,
-    w: usize,
+    dtype: DType, // data type
+    n: usize,     // number of frames
+    h: usize,     // height,
+    w: usize,     // width of the image
     slope: f64,
     intercept: f64,
-    min: f64,
-    max: f64,
-    data: Vec<u8>,
+    min: f64,       // minimum pixel val
+    max: f64,       // maximum -||-
+    data: Vec<u8>,  // raw bytes
+    samples: usize, // how many samples per pixel
+    inverted: bool, // mostly for photometric Monochrome1
 }
 
 impl Volume {
     // builder
     pub fn build(obj: &FileDicomObject<InMemDicomObject>) -> Result<Volume, String> {
-        let decoded = obj.decode_pixel_data().map_err(|e| -> String {
-            format! {"failure decoding pixel data: {e}"}
-        })?;
-
-        let data = decoded.data().to_vec();
-        if decoded.samples_per_pixel() != 1 {
-            return Err("more samples per pixel than 1 is not currently supported.".into());
-        }
-
-        let n: usize = decoded.number_of_frames() as usize;
-        let h: usize = decoded.rows() as usize;
-        let w: usize = decoded.columns() as usize;
-
-        let rescale = decoded
-            .rescale()
-            .map_err(|e| -> String { format!("failed to fetch rescale values: {e}") })?;
-
-        let first_row = rescale[0];
-        let intercept = first_row.intercept;
-        let slope: f64 = first_row.slope;
+        let decoded = obj.decode_pixel_data().map_err(|e| -> String { format!("failure decoding pixel data: {e}") })?;
 
         let dtype = match (decoded.bits_allocated(), decoded.pixel_representation()) {
             (8, Unsigned) => DType::U8,
@@ -56,22 +46,36 @@ impl Volume {
                 return Err(format!("unsupported pixel format: {bits} bits, {repr:?}"));
             }
         };
+
+        let data = decoded.data().to_vec();
+        let is_u8 = matches!(dtype, DType::U8);
+
+        let (samples, inverted) = match (decoded.photometric_interpretation(), decoded.samples_per_pixel()) {
+            (Monochrome2, 1) => (1, false),
+            (Monochrome1, 1) => (1, true),
+            (Rgb, 3) if is_u8 && decoded.planar_configuration() == PlanarConfiguration::Standard => (3, false), // only expecting rgb for u8
+
+            (photometric, spp) => {
+                return Err(format!("unsupported image type: {photometric:?} with {spp} samples"));
+            }
+        };
+
+        let n: usize = decoded.number_of_frames() as usize;
+        let h: usize = decoded.rows() as usize;
+        let w: usize = decoded.columns() as usize;
+
+        let rescale = decoded.rescale().map_err(|e| -> String { format!("failed to fetch rescale values: {e}") })?;
+
+        let first_row = rescale[0];
+        let intercept = first_row.intercept;
+        let slope: f64 = first_row.slope;
+
         let (mut min, mut max) = (f64::INFINITY, f64::NEG_INFINITY);
         Self::visit(dtype, &data, slope, intercept, |v| {
             min = min.min(v);
             max = max.max(v);
         });
 
-        Ok(Volume {
-            n,
-            h,
-            w,
-            dtype,
-            slope,
-            intercept,
-            min,
-            max,
-            data,
-        })
+        Ok(Volume { n, h, w, dtype, slope, intercept, min, max, data, samples, inverted })
     }
 }

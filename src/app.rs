@@ -16,10 +16,7 @@ pub struct ViewerApp {
 
 impl ViewerApp {
     fn open_dialog(&mut self) {
-        let Some(path) = rfd::FileDialog::new()
-            .add_filter("DICOM", &["dcm"])
-            .pick_file()
-        else {
+        let Some(path) = rfd::FileDialog::new().add_filter("DICOM", &["dcm"]).pick_file() else {
             return;
         };
 

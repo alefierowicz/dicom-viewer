@@ -5,7 +5,6 @@ use dicom_object::{DefaultDicomObject, mem::InMemElement};
 use std::path::Path;
 pub struct LoadedFile {
     pub name: String,
-    pub obj: DefaultDicomObject,
     pub metadata: Vec<MetaRow>, // i know its a duplicate but its better than re-rendering metadata every tick
     pub volume: Volume,
 }
@@ -17,21 +16,18 @@ pub struct MetaRow {
 }
 
 fn is_binary(vr: VR) -> bool {
-    matches!(
-        vr,
-        VR::OB | VR::OW | VR::OD | VR::OF | VR::OL | VR::OV | VR::UN
-    )
+    matches!(vr, VR::OB | VR::OW | VR::OD | VR::OF | VR::OL | VR::OV | VR::UN)
 }
 
 pub fn display_value(element: &InMemElement) -> Option<String> {
     if let Some(items) = element.items() {
-        return Some(format!("[{} items]", items.len()));
+        Some(format!("[{} items]", items.len()))
     } else if is_binary(element.vr()) {
-        return Some(match element.header().len.get() {
+        Some(match element.header().len.get() {
             // description of the binary since we cant really display it
             Some(n) => format!("[binary, {} bytes]", n),
             None => "[binary]".to_string(),
-        });
+        })
     } else {
         match element.to_str() {
             Ok(val) => {
@@ -66,11 +62,7 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
         };
 
         // println!("{} | {} | {}", tag, name, value);
-        out.push(MetaRow {
-            tag: tag.to_string(),
-            name,
-            value,
-        });
+        out.push(MetaRow { tag: tag.to_string(), name, value });
     }
     out
 }
@@ -78,28 +70,14 @@ pub fn collect_metadata(file: &DefaultDicomObject) -> Vec<MetaRow> {
 pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
     let obj: dicom_object::FileDicomObject<dicom_object::InMemDicomObject> =
         dicom_object::open_file(path).map_err(|e| e.to_string())?;
-    let name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     let metadata = collect_metadata(&obj);
 
-    let volume =
-        Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
+    let volume = Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
     let val_range = volume.value_range();
 
     if let Some(pixels) = volume.render_frame(0, val_range.0, val_range.1) {
-        println!(
-            "rendered {} bytes, min {:?}, max {:?}",
-            pixels.len(),
-            pixels.iter().min(),
-            pixels.iter().max()
-        );
+        println!("rendered {} bytes, min {:?}, max {:?}", pixels.len(), pixels.iter().min(), pixels.iter().max());
     }
-    Ok(LoadedFile {
-        name,
-        obj,
-        metadata,
-        volume,
-    })
+    Ok(LoadedFile { name, metadata, volume })
 }

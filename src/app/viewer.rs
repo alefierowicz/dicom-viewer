@@ -27,49 +27,42 @@ impl ViewerApp {
             let (lo, hi) = file.volume.value_range();
             if let Some(pixels) = file.volume.render_frame(self.frame, lo, hi) {
                 let size = [file.volume.width(), file.volume.height()];
-                let image = egui::ColorImage::from_gray(size, &pixels);
-
-                self.texture = Some(ui.ctx().load_texture(
-                    "frame",
-                    image,
-                    egui::TextureOptions::NEAREST,
-                ))
+                let image = if file.volume.is_color() {
+                    egui::ColorImage::from_rgb(size, &pixels)
+                } else {
+                    egui::ColorImage::from_gray(size, &pixels)
+                };
+                self.texture = Some(ui.ctx().load_texture("frame", image, egui::TextureOptions::NEAREST))
             }
         }
-        egui::Panel::left("metadata")
-            .resizable(false)
-            .exact_size(380.0)
-            .show(ui, |ui| {
-                ui.heading(&file.name);
-                if frames > 1 {
-                    ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
-                }
-                ui.label(format!("{} fields", file.metadata.len()));
+        egui::Panel::left("metadata").resizable(false).exact_size(380.0).show(ui, |ui| {
+            ui.heading(&file.name);
+            if frames > 1 {
+                ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
+            }
+            ui.label(format!("{} fields", file.metadata.len()));
 
-                // DEBUG: current offset & zoom level
-                if let Some(v) = &self.view {
-                    ui.label(format!("current zoom level: {}", v.zoom));
-                    ui.label(format!("current offset: {}", v.offset));
-                }
-                ui.separator();
+            // DEBUG: current offset & zoom level
+            if let Some(v) = &self.view {
+                ui.label(format!("current zoom level: {}", v.zoom));
+                ui.label(format!("current offset: {}", v.offset));
+            }
+            ui.separator();
 
-                egui::ScrollArea::both().show(ui, |ui| {
-                    egui::Grid::new("metadata_grid")
-                        .num_columns(3)
-                        .striped(true)
-                        .show(ui, |ui| {
-                            for row in &file.metadata
-                            // .iter().filter(|val| val.name != "Unknown")
-                            // todo: make this into a checkmark for future use so that its not swamped with UNKNOWNS
-                            {
-                                ui.monospace(&row.tag);
-                                ui.label(&row.name);
-                                ui.label(&row.value);
-                                ui.end_row();
-                            }
-                        });
+            egui::ScrollArea::both().show(ui, |ui| {
+                egui::Grid::new("metadata_grid").num_columns(3).striped(true).show(ui, |ui| {
+                    for row in &file.metadata
+                    // .iter().filter(|val| val.name != "Unknown")
+                    // todo: make this into a checkmark for future use so that its not swamped with UNKNOWNS
+                    {
+                        ui.monospace(&row.tag);
+                        ui.label(&row.name);
+                        ui.label(&row.value);
+                        ui.end_row();
+                    }
                 });
             });
+        });
 
         if self.texture.is_none() || self.frame != previous_frame {
             let (lo, hi) = file.volume.value_range();
@@ -80,11 +73,7 @@ impl ViewerApp {
                 if let Some(texture) = &mut self.texture {
                     texture.set(image, egui::TextureOptions::NEAREST);
                 } else {
-                    self.texture = Some(ui.ctx().load_texture(
-                        "frame",
-                        image,
-                        egui::TextureOptions::NEAREST,
-                    ));
+                    self.texture = Some(ui.ctx().load_texture("frame", image, egui::TextureOptions::NEAREST));
                 }
             }
         }
@@ -106,8 +95,7 @@ impl ViewerApp {
     ) {
         // reserving space to paint image
         // rect is the size of the free space, response - what we did just now (ie. click drag zoom whatever)
-        let (rect, response) =
-            ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+        let (rect, response) = ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
         let image_size = texture.size_vec2();
 
         // fitting the image on screen
@@ -142,9 +130,7 @@ impl ViewerApp {
         painter.image(texture.id(), image_rect, uv, egui::Color32::WHITE);
 
         if view.zoom >= MIN_LABEL_ZOOM {
-            Self::draw_pixel_values(
-                &painter, rect, image_rect, view.zoom, image_size, volume, frame,
-            );
+            Self::draw_pixel_values(&painter, rect, image_rect, view.zoom, image_size, volume, frame);
         }
     }
 
@@ -157,9 +143,7 @@ impl ViewerApp {
         volume: &Volume,
         frame: usize,
     ) {
-        let first = ((rect.min - image_rect.min) / zoom)
-            .floor()
-            .max(egui::Vec2::ZERO);
+        let first = ((rect.min - image_rect.min) / zoom).floor().max(egui::Vec2::ZERO);
 
         let last = ((rect.max - image_rect.min) / zoom).ceil().min(image_size);
         let font = egui::FontId::monospace(12.0);
@@ -180,13 +164,7 @@ impl ViewerApp {
                     font.clone(),
                     egui::Color32::BLACK,
                 );
-                painter.text(
-                    center,
-                    egui::Align2::CENTER_CENTER,
-                    &text,
-                    font.clone(),
-                    egui::Color32::WHITE,
-                );
+                painter.text(center, egui::Align2::CENTER_CENTER, &text, font.clone(), egui::Color32::WHITE);
             }
         }
     }

@@ -7,18 +7,27 @@ impl Volume {
     }
 
     pub fn render_frame(&self, frame: usize, lo: f64, hi: f64) -> Option<Vec<u8>> {
-        if frame >= self.n || hi <= lo {
+        if frame >= self.n {
             return None;
         }
-        let frame_len = self.w * self.h * self.dtype.size();
+        let frame_len = self.w * self.h * self.dtype.size() * self.samples;
         let start = frame * frame_len;
-
         let bytes = &self.data[start..start + frame_len];
+        if self.is_color() {
+            return Some(bytes.to_vec());
+        }
+
+        if hi <= lo {
+            return None;
+        }
+
         let mut out = Vec::with_capacity(self.w * self.h);
 
         Self::visit(self.dtype, bytes, self.slope, self.intercept, |v| {
-            out.push(Self::to_display(v, lo, hi))
+            let b = Self::to_display(v, lo, hi);
+            out.push(if self.inverted { 255 - b } else { b });
         });
+
         Some(out)
     }
 
