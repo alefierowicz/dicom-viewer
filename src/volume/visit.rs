@@ -18,7 +18,7 @@ impl Volume {
 
     fn visit_typed<T: Sample>(bytes: &[u8], slope: f64, intercept: f64, mut f: impl FnMut(f64)) {
         for chunk in bytes.chunks_exact(std::mem::size_of::<T>()) {
-            f(T::read(chunk) * slope + intercept);
+            f(T::read(chunk) * slope + intercept); // https://www.kitware.com/dicom-rescale-intercept-rescale-slope-and-itk/
         }
     }
 }

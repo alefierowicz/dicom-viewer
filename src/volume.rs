@@ -19,9 +19,9 @@ pub enum PixelValue {
 pub struct Volume {
     dtype: DType, // data type
     n: usize,     // number of frames
-    h: usize,     // height,
-    w: usize,     // width of the image
-    slope: f64,
+    h: usize,
+    w: usize,
+    slope: f64, // see visit.rs
     intercept: f64,
     min: f64,       // minimum pixel val
     max: f64,       // maximum -||-
@@ -77,5 +77,14 @@ impl Volume {
         });
 
         Ok(Volume { n, h, w, dtype, slope, intercept, min, max, data, samples, inverted })
+    }
+}
+
+impl std::fmt::Display for PixelValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self {
+            PixelValue::Gray(v) => write!(f, "{v:.0}"),
+            PixelValue::Rgb(r, g, b) => write!(f, "{r}\n{g}\n{b}"),
+        }
     }
 }

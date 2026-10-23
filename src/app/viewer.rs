@@ -146,7 +146,7 @@ impl ViewerApp {
         let first = ((rect.min - image_rect.min) / zoom).floor().max(egui::Vec2::ZERO);
 
         let last = ((rect.max - image_rect.min) / zoom).ceil().min(image_size);
-        let font = egui::FontId::monospace(12.0);
+        let font = if volume.is_color() { egui::FontId::monospace(10.0) } else { egui::FontId::monospace(12.0) };
 
         for y in first.y as usize..last.y as usize {
             for x in first.x as usize..last.x as usize {
@@ -154,7 +154,7 @@ impl ViewerApp {
                     continue;
                 };
 
-                let text = format!("{val:.0}");
+                let text = format!("{val}");
                 let center = image_rect.min + egui::vec2(x as f32 + 0.5, y as f32 + 0.5) * zoom;
 
                 painter.text(
