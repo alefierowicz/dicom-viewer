@@ -1,6 +1,7 @@
 mod app;
 mod dicom;
 mod dtype;
+mod pixel;
 mod volume;
 fn main() -> eframe::Result {
     eframe::run_native(

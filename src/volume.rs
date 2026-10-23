@@ -11,11 +11,6 @@ use dicom_pixeldata::{
     PlanarConfiguration,
 };
 
-pub enum PixelValue {
-    Gray(f64),
-    Rgb(u8, u8, u8),
-}
-
 pub struct Volume {
     dtype: DType, // data type
     n: usize,     // number of frames
@@ -77,14 +72,5 @@ impl Volume {
         });
 
         Ok(Volume { n, h, w, dtype, slope, intercept, min, max, data, samples, inverted })
-    }
-}
-
-impl std::fmt::Display for PixelValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match &self {
-            PixelValue::Gray(v) => write!(f, "{v:.0}"),
-            PixelValue::Rgb(r, g, b) => write!(f, "{r}\n{g}\n{b}"),
-        }
     }
 }

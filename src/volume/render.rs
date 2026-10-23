@@ -1,4 +1,5 @@
-use crate::volume::{PixelValue, Volume};
+use crate::pixel::PixelValue;
+use crate::volume::Volume;
 
 impl Volume {
     fn to_display(value: f64, lo: f64, hi: f64) -> u8 {
