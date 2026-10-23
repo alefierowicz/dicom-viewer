@@ -35,7 +35,7 @@ impl ViewerApp {
                 self.texture = Some(ui.ctx().load_texture("frame", image, egui::TextureOptions::NEAREST))
             }
         }
-        egui::Panel::left("metadata").resizable(false).exact_size(380.0).show(ui, |ui| {
+        egui::Panel::left("metadata").resizable(false).exact_size(500.0).show(ui, |ui| {
             ui.heading(&file.name);
             if frames > 1 {
                 ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));

@@ -46,7 +46,7 @@ impl Volume {
         if self.is_color() {
             value = Some(PixelValue::Rgb(pixel[0], pixel[1], pixel[2]))
         } else {
-            Self::visit(self.dtype, pixel, 1.0, 0.0, |v| value = Some(PixelValue::Gray(v)));
+            Self::visit(self.dtype, pixel, self.slope, self.intercept, |v| value = Some(PixelValue::Gray(v)));
         }
 
         value
