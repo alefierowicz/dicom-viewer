@@ -11,6 +11,7 @@ pub struct ViewerApp {
     texture: Option<egui::TextureHandle>,
     error: Option<String>,
     view: Option<viewer::View>,
+    frame: usize,
 }
 
 impl ViewerApp {
@@ -28,6 +29,7 @@ impl ViewerApp {
                 self.texture = None;
                 self.error = None;
                 self.view = None;
+                self.frame = 0;
             }
             Err(msg) => self.error = Some(msg),
         }

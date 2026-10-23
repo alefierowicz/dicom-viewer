@@ -7,19 +7,27 @@ pub(super) struct View {
     offset: egui::Vec2,
 }
 
-const MIN_LABEL_ZOOM: f32 = 40.0;
+const MIN_LABEL_ZOOM: f32 = 30.0;
 impl ViewerApp {
     pub(super) fn show_main(&mut self, ui: &mut egui::Ui) {
         let Some(file) = &self.loaded else { return };
+        let frames = file.volume.frames();
+        let previous_frame = self.frame;
+
+        ui.input(|i| {
+            if i.key_pressed(egui::Key::ArrowUp) {
+                self.frame = (self.frame + 1).min(frames - 1);
+            }
+            if i.key_pressed(egui::Key::ArrowDown) {
+                self.frame = self.frame.saturating_sub(1);
+            }
+        });
+
         if self.texture.is_none() {
             let (lo, hi) = file.volume.value_range();
-            if let Some(pixels) = file.volume.render_frame(0, lo, hi) {
+            if let Some(pixels) = file.volume.render_frame(self.frame, lo, hi) {
                 let size = [file.volume.width(), file.volume.height()];
                 let image = egui::ColorImage::from_gray(size, &pixels);
-
-                // temp for testing
-                let px_val = file.volume.pixel_value(0, 0, 0).unwrap();
-                println!("{}", px_val);
 
                 self.texture = Some(ui.ctx().load_texture(
                     "frame",
@@ -33,6 +41,9 @@ impl ViewerApp {
             .exact_size(380.0)
             .show(ui, |ui| {
                 ui.heading(&file.name);
+                if frames > 1 {
+                    ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
+                }
                 ui.label(format!("{} fields", file.metadata.len()));
 
                 // DEBUG: current offset & zoom level
@@ -47,7 +58,8 @@ impl ViewerApp {
                         .num_columns(3)
                         .striped(true)
                         .show(ui, |ui| {
-                            for row in file.metadata.iter().filter(|val| val.name != "Unknown")
+                            for row in &file.metadata
+                            // .iter().filter(|val| val.name != "Unknown")
                             // todo: make this into a checkmark for future use so that its not swamped with UNKNOWNS
                             {
                                 ui.monospace(&row.tag);
@@ -59,17 +71,35 @@ impl ViewerApp {
                 });
             });
 
+        if self.texture.is_none() || self.frame != previous_frame {
+            let (lo, hi) = file.volume.value_range();
+            if let Some(pixels) = file.volume.render_frame(self.frame, lo, hi) {
+                let size = [file.volume.width(), file.volume.height()];
+                let image = egui::ColorImage::from_gray(size, &pixels);
+
+                if let Some(texture) = &mut self.texture {
+                    texture.set(image, egui::TextureOptions::NEAREST);
+                } else {
+                    self.texture = Some(ui.ctx().load_texture(
+                        "frame",
+                        image,
+                        egui::TextureOptions::NEAREST,
+                    ));
+                }
+            }
+        }
         egui::CentralPanel::default().show(ui, |ui| {
             let Some(texture) = &self.texture else {
                 ui.label("cannot display this image");
                 return;
             };
-            Self::show_image(ui, texture, &mut self.view, &file.volume);
+            Self::show_image(ui, self.frame, texture, &mut self.view, &file.volume);
         });
     }
 
     fn show_image(
         ui: &mut egui::Ui,
+        frame: usize,
         texture: &egui::TextureHandle,
         view: &mut Option<View>,
         volume: &Volume,
@@ -112,7 +142,9 @@ impl ViewerApp {
         painter.image(texture.id(), image_rect, uv, egui::Color32::WHITE);
 
         if view.zoom >= MIN_LABEL_ZOOM {
-            Self::draw_pixel_values(&painter, rect, image_rect, view.zoom, image_size, volume);
+            Self::draw_pixel_values(
+                &painter, rect, image_rect, view.zoom, image_size, volume, frame,
+            );
         }
     }
 
@@ -123,14 +155,8 @@ impl ViewerApp {
         zoom: f32,
         image_size: egui::Vec2,
         volume: &Volume,
+        frame: usize,
     ) {
-        painter.text(
-            rect.center(),
-            egui::Align2::CENTER_CENTER,
-            "LABELS ON",
-            egui::FontId::monospace(30.0),
-            egui::Color32::RED,
-        );
         let first = ((rect.min - image_rect.min) / zoom)
             .floor()
             .max(egui::Vec2::ZERO);
@@ -140,7 +166,7 @@ impl ViewerApp {
 
         for y in first.y as usize..last.y as usize {
             for x in first.x as usize..last.x as usize {
-                let Some(val) = volume.pixel_value(0, x, y) else {
+                let Some(val) = volume.pixel_value(frame, x, y) else {
                     continue;
                 };
 

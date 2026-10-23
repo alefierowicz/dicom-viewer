@@ -8,7 +8,6 @@ pub struct LoadedFile {
     pub obj: DefaultDicomObject,
     pub metadata: Vec<MetaRow>, // i know its a duplicate but its better than re-rendering metadata every tick
     pub volume: Volume,
-    pub min_max: (f64, f64),
 }
 
 pub struct MetaRow {
@@ -101,7 +100,6 @@ pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
         name,
         obj,
         metadata,
-        min_max: val_range,
         volume,
     })
 }

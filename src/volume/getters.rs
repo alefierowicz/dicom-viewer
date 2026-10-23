@@ -1,7 +1,10 @@
 use crate::volume::Volume;
 
 impl Volume {
-    // getter for dicom.rs
+    pub fn frames(&self) -> usize {
+        self.n
+    }
+
     pub fn value_range(&self) -> (f64, f64) {
         (self.min, self.max)
     }
