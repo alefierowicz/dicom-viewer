@@ -61,7 +61,11 @@ impl Volume {
 
         let rescale = decoded.rescale().map_err(|e| -> String { format!("failed to fetch rescale values: {e}") })?;
 
-        let first_row = rescale[0];
+        let first_row = match rescale.first() {
+            Some(res) => res,
+            None => return Err("failed to read rescale".into()),
+        };
+
         let intercept = first_row.intercept;
         let slope: f64 = first_row.slope;
 

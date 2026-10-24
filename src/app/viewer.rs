@@ -13,7 +13,7 @@ impl ViewerApp {
         let Some(file) = &self.loaded else { return };
         let frames = file.volume.frames();
         let previous_frame = self.frame;
-
+        let mut open_clicked = false;
         ui.input(|i| {
             if i.key_pressed(egui::Key::ArrowUp) {
                 self.frame = (self.frame + 1).min(frames - 1);
@@ -23,19 +23,15 @@ impl ViewerApp {
             }
         });
 
-        if self.texture.is_none() {
-            let (lo, hi) = file.volume.value_range();
-            if let Some(pixels) = file.volume.render_frame(self.frame, lo, hi) {
-                let size = [file.volume.width(), file.volume.height()];
-                let image = if file.volume.is_color() {
-                    egui::ColorImage::from_rgb(size, &pixels)
-                } else {
-                    egui::ColorImage::from_gray(size, &pixels)
-                };
-                self.texture = Some(ui.ctx().load_texture("frame", image, egui::TextureOptions::NEAREST))
-            }
-        }
         egui::Panel::left("metadata").resizable(false).exact_size(500.0).show(ui, |ui| {
+            if ui.button("open file").clicked() {
+                open_clicked = true
+            }
+            if let Some(msg) = &self.error {
+                ui.colored_label(egui::Color32::DARK_RED, msg);
+            }
+
+            ui.separator();
             ui.heading(&file.name);
             if frames > 1 {
                 ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
@@ -68,7 +64,11 @@ impl ViewerApp {
             let (lo, hi) = file.volume.value_range();
             if let Some(pixels) = file.volume.render_frame(self.frame, lo, hi) {
                 let size = [file.volume.width(), file.volume.height()];
-                let image = egui::ColorImage::from_gray(size, &pixels);
+                let image = if file.volume.is_color() {
+                    egui::ColorImage::from_rgb(size, &pixels)
+                } else {
+                    egui::ColorImage::from_gray(size, &pixels)
+                };
 
                 if let Some(texture) = &mut self.texture {
                     texture.set(image, egui::TextureOptions::NEAREST);
@@ -77,6 +77,7 @@ impl ViewerApp {
                 }
             }
         }
+
         egui::CentralPanel::default().show(ui, |ui| {
             let Some(texture) = &self.texture else {
                 ui.label("cannot display this image");
@@ -84,6 +85,9 @@ impl ViewerApp {
             };
             Self::show_image(ui, self.frame, texture, &mut self.view, &file.volume);
         });
+        if open_clicked {
+            self.open_dialog();
+        }
     }
 
     fn show_image(
