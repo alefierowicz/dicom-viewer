@@ -12,6 +12,7 @@ pub struct ViewerApp {
     error: Option<String>,
     view: Option<viewer::View>,
     frame: usize,
+    hide_unknown: bool,
 }
 
 impl ViewerApp {
@@ -27,6 +28,7 @@ impl ViewerApp {
                 self.error = None;
                 self.view = None;
                 self.frame = 0;
+                self.hide_unknown = false;
             }
             Err(msg) => self.error = Some(msg),
         }

@@ -11,7 +11,7 @@ pub const ACCENT: Color32 = Color32::from_rgb(242, 140, 40); // #F28C28
 pub const BOLD: &str = "bold";
 
 pub fn apply(ctx: &egui::Context) {
-    // load_fonts(ctx);
+    load_fonts(ctx);
 
     ctx.set_theme(Theme::Dark);
     ctx.style_mut_of(Theme::Dark, |style| {

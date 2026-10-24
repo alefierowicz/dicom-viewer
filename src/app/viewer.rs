@@ -30,21 +30,33 @@ impl ViewerApp {
             if let Some(msg) = &self.error {
                 ui.colored_label(egui::Color32::DARK_RED, msg);
             }
+            egui::Area::new(egui::Id::unique("view_controls"))
+                .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-12.0, 12.0))
+                .show(ui.ctx(), |ui| {
+                    egui::Frame::popup(ui.style()).show(ui, |ui| {
+                        ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                        ui.set_min_width(240.0);
+                        if frames > 1 {
+                            ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
+                        }
+                        if let Some(v) = &self.view {
+                            ui.monospace(format!(
+                                "zoom {:.2}x   offset ({:.0}, {:.0})",
+                                v.zoom, v.offset.x, v.offset.y
+                            ));
+                        }
+                    });
+                });
 
             ui.separator();
             ui.heading(&file.name);
-            if frames > 1 {
-                ui.add(egui::Slider::new(&mut self.frame, 0..=frames - 1).text("slice"));
-            }
-            ui.label(format!("{} fields", file.metadata.len()));
+            ui.checkbox(&mut self.hide_unknown, "hide unknown tags");
 
-            // DEBUG: current offset & zoom level
-            if let Some(v) = &self.view {
-                ui.label(format!("current zoom level: {}", v.zoom));
-                ui.label(format!("current offset: {}", v.offset));
-            }
+            let rows: Vec<_> =
+                file.metadata.iter().filter(|row| !(self.hide_unknown && row.name == "Unknown")).collect();
+
+            ui.label(format!("{} of {} fields", rows.len(), file.metadata.len()));
             ui.separator();
-
             egui::ScrollArea::both().show(ui, |ui| {
                 egui::Grid::new("metadata_grid").num_columns(3).striped(true).show(ui, |ui| {
                     for row in &file.metadata
