@@ -74,10 +74,5 @@ pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
     let metadata = collect_metadata(&obj);
 
     let volume = Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
-    let val_range = volume.value_range();
-
-    if let Some(pixels) = volume.render_frame(0, val_range.0, val_range.1) {
-        println!("rendered {} bytes, min {:?}, max {:?}", pixels.len(), pixels.iter().min(), pixels.iter().max());
-    }
     Ok(LoadedFile { name, metadata, volume })
 }
