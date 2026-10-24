@@ -1,5 +1,7 @@
 use eframe::egui;
 
+use crate::theme;
+
 use super::ViewerApp;
 
 impl ViewerApp {
@@ -7,15 +9,21 @@ impl ViewerApp {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add_space(ui.available_height() / 3.0);
-                ui.heading("DICOM viewer");
-                ui.add_space(12.0);
+                ui.label(
+                    egui::RichText::new("DICOM viewer").size(44.0).family(egui::FontFamily::Name(theme::BOLD.into())),
+                );
+                ui.add_space(24.0);
 
-                if ui.button("open file").clicked() {
+                let button =
+                    egui::Button::new(egui::RichText::new("open file").size(20.0)).min_size(egui::vec2(180.0, 44.0));
+                if ui.add(button).clicked() {
                     self.open_dialog();
                 }
+
                 if let Some(msg) = &self.error {
-                    ui.add_space(8.0);
-                    ui.colored_label(egui::Color32::DARK_RED, msg);
+                    ui.add_space(12.0);
+                    let red = ui.visuals().error_fg_color;
+                    ui.colored_label(red, msg);
                 }
             });
         });
