@@ -26,9 +26,11 @@ impl ViewerApp {
         }
     }
 
+    /// up/down: frames inside the current file, left/right: switch files
     fn handle_keys(&mut self, ui: &mut egui::Ui) {
-        let Some(file) = &self.loaded else { return };
+        let Some(file) = self.files.get(self.current) else { return };
         let frames = file.volume.frames();
+        let mut switch_to = None;
 
         ui.input(|i| {
             if i.key_pressed(egui::Key::ArrowUp) {
@@ -37,11 +39,32 @@ impl ViewerApp {
             if i.key_pressed(egui::Key::ArrowDown) {
                 self.frame = self.frame.saturating_sub(1);
             }
+            if i.key_pressed(egui::Key::ArrowRight) {
+                switch_to = Some(self.current + 1);
+            }
+            if i.key_pressed(egui::Key::ArrowLeft) {
+                switch_to = self.current.checked_sub(1);
+            }
         });
+
+        if let Some(index) = switch_to {
+            self.select_file(index);
+        }
+    }
+
+    /// shows another loaded file, starting from its first frame, fitted to the window
+    fn select_file(&mut self, index: usize) {
+        if index == self.current || index >= self.files.len() {
+            return;
+        }
+        self.current = index;
+        self.frame = 0;
+        self.view = None;
+        self.texture = None; // forces update_texture to rebuild even though frame may not have changed
     }
 
     fn update_texture(&mut self, ui: &mut egui::Ui, previous_frame: usize) {
-        let Some(file) = &self.loaded else { return };
+        let Some(file) = self.files.get(self.current) else { return };
         if self.texture.is_some() && self.frame == previous_frame {
             return;
         }

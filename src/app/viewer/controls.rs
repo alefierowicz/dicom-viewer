@@ -5,7 +5,7 @@ use crate::app::ViewerApp;
 impl ViewerApp {
     /// floating box in the top-right corner: slice slider and zoom/offset readout
     pub(super) fn show_controls(&mut self, ui: &mut egui::Ui) {
-        let Some(file) = &self.loaded else { return };
+        let Some(file) = self.files.get(self.current) else { return };
         let frames = file.volume.frames();
 
         egui::Area::new(egui::Id::unique("view_controls"))

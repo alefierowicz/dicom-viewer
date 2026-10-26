@@ -9,7 +9,7 @@ const MIN_LABEL_ZOOM: f32 = 30.0;
 impl ViewerApp {
     /// central panel with the image
     pub(super) fn show_canvas(&mut self, ui: &mut egui::Ui) {
-        let Some(file) = &self.loaded else { return };
+        let Some(file) = self.files.get(self.current) else { return };
 
         egui::CentralPanel::default().show(ui, |ui| {
             let Some(texture) = &self.texture else {

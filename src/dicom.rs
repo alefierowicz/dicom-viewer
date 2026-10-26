@@ -1,12 +1,16 @@
 use crate::volume::Volume;
 use dicom_core::{DataDictionary, VR};
-use dicom_dictionary_std::{StandardDataDictionary, tags::PIXEL_DATA};
+use dicom_dictionary_std::{
+    StandardDataDictionary,
+    tags::{self, PIXEL_DATA},
+};
 use dicom_object::{DefaultDicomObject, mem::InMemElement};
 use std::path::Path;
 pub struct LoadedFile {
     pub name: String,
     pub metadata: Vec<MetaRow>, // i know its a duplicate but its better than re-rendering metadata every tick
     pub volume: Volume,
+    pub instance: Option<i32>, // used to sort a series
 }
 
 pub struct MetaRow {
@@ -72,7 +76,8 @@ pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
         dicom_object::open_file(path).map_err(|e| e.to_string())?;
     let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     let metadata = collect_metadata(&obj);
+    let instance: Option<i32> = obj.element(tags::INSTANCE_NUMBER).ok().and_then(|e| e.to_int::<i32>().ok());
 
     let volume = Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
-    Ok(LoadedFile { name, metadata, volume })
+    Ok(LoadedFile { name, metadata, volume, instance })
 }

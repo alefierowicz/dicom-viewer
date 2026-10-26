@@ -3,12 +3,13 @@ mod viewer;
 
 use crate::dicom::{LoadedFile, load_file};
 use eframe::egui;
-use rayon::prelude::*;
+use rayon::{iter::Either, prelude::*};
 use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct ViewerApp {
-    loaded: Option<LoadedFile>,
+    files: Vec<LoadedFile>, // a single opened file is just a vec of one
+    current: usize,         // index into `files` of the one being shown
     texture: Option<egui::TextureHandle>,
     error: Option<String>,
     view: Option<viewer::View>,
@@ -43,24 +44,27 @@ impl ViewerApp {
             }
         };
 
-        let paths: Vec<PathBuf> = list
+        let mut paths: Vec<PathBuf> = list
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|p| p.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("dcm")))
             .collect();
+        paths.sort();
 
-        let results: Vec<Result<LoadedFile, String>> = paths.par_iter().map(|p| load_file(p)).collect();
-        let mut good_files: Vec<LoadedFile> = Vec::new();
-        let mut errors: Vec<String> = Vec::new();
+        let (mut good_files, errors): (Vec<LoadedFile>, Vec<String>) =
+            paths.par_iter().map(|p| load_file(p)).partition_map(|r| match r {
+                Ok(file) => Either::Left(file),
+                Err(msg) => Either::Right(msg),
+            });
 
-        for file in results {
-            match file {
-                Ok(f) => good_files.push(f),
-                Err(msg) => errors.push(msg),
-            }
+        good_files.sort_by_key(|f| f.instance);
+        println!("[DEBUG] {} files loaded, {} failed", good_files.len(), errors.len());
+
+        if good_files.is_empty() {
+            self.error = Some(format!("no loadable .dcm files in this folder ({} failed)", errors.len()));
+            return;
         }
-
-        println!("{} files loaded, {} failed", good_files.len(), errors.len());
+        self.set_files(good_files);
     }
 
     fn open_dialog(&mut self) {
@@ -69,22 +73,26 @@ impl ViewerApp {
         };
 
         match load_file(&path) {
-            Ok(file) => {
-                self.loaded = Some(file);
-                self.texture = None;
-                self.error = None;
-                self.view = None;
-                self.frame = 0;
-                self.hide_unknown = false;
-            }
+            Ok(file) => self.set_files(vec![file]),
             Err(msg) => self.error = Some(msg),
         }
+    }
+
+    /// replaces whatever was loaded and starts from the first file
+    fn set_files(&mut self, files: Vec<LoadedFile>) {
+        self.files = files;
+        self.current = 0;
+        self.texture = None;
+        self.error = None;
+        self.view = None;
+        self.frame = 0;
+        self.hide_unknown = false;
     }
 }
 
 impl eframe::App for ViewerApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        if self.loaded.is_none() {
+        if self.files.is_empty() {
             self.show_landing(ui);
         } else {
             self.show_main(ui);
