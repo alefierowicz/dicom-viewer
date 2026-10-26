@@ -1,7 +1,6 @@
 ## Przeglądarka DICOM
 
 Przeglądarka obrazów medycznych `.dcm` wraz z ich metadanymi.
-> Po uzgodnieniu z prowadzącym, projekt realizowany w języku **rust**.
 
 ## Stack
 | Biblioteka | Zastosowanie |
