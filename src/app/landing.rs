@@ -2,7 +2,7 @@ use eframe::egui;
 
 use crate::theme;
 
-use super::ViewerApp;
+use super::{OpenRequest, ViewerApp};
 
 impl ViewerApp {
     pub(super) fn show_landing(&mut self, ui: &mut egui::Ui) {
@@ -14,10 +14,26 @@ impl ViewerApp {
                 );
                 ui.add_space(24.0);
 
-                let button =
-                    egui::Button::new(egui::RichText::new("open file").size(20.0)).min_size(egui::vec2(180.0, 44.0));
-                if ui.add(button).clicked() {
-                    self.open_dialog();
+                let button_size = egui::vec2(180.0, 44.0);
+                let mut request = None;
+
+                ui.horizontal(|ui| {
+                    // horizontal layouts start at the left edge, so pad by hand to center the two buttons
+                    let total = button_size.x * 2.0 + ui.spacing().item_spacing.x;
+                    ui.add_space((ui.available_width() - total) / 2.0);
+
+                    let file = egui::Button::new(egui::RichText::new("open file").size(20.0)).min_size(button_size);
+                    if ui.add(file).clicked() {
+                        request = Some(OpenRequest::File);
+                    }
+                    let folder = egui::Button::new(egui::RichText::new("open folder").size(20.0)).min_size(button_size);
+                    if ui.add(folder).clicked() {
+                        request = Some(OpenRequest::Folder);
+                    }
+                });
+
+                if let Some(request) = request {
+                    self.open(request);
                 }
 
                 if let Some(msg) = &self.error {

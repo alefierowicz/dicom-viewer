@@ -1,17 +1,22 @@
 use eframe::egui;
 
-use crate::app::ViewerApp;
+use crate::app::{OpenRequest, ViewerApp};
 
 impl ViewerApp {
-    /// Left panel with the file name and metadata. Returns true if "open file" was clicked.
-    pub(super) fn show_sidebar(&mut self, ui: &mut egui::Ui) -> bool {
-        let Some(file) = &self.loaded else { return false };
-        let mut open_clicked = false;
+    /// Left panel with the file name and metadata. Returns which open button was clicked, if any.
+    pub(super) fn show_sidebar(&mut self, ui: &mut egui::Ui) -> Option<OpenRequest> {
+        let Some(file) = &self.loaded else { return None };
+        let mut request = None;
 
         egui::Panel::left("metadata").resizable(false).exact_size(500.0).show(ui, |ui| {
-            if ui.button("open file").clicked() {
-                open_clicked = true;
-            }
+            ui.horizontal(|ui| {
+                if ui.button("open file").clicked() {
+                    request = Some(OpenRequest::File);
+                }
+                if ui.button("open folder").clicked() {
+                    request = Some(OpenRequest::Folder);
+                }
+            });
             if let Some(msg) = &self.error {
                 let red = ui.visuals().error_fg_color;
                 ui.colored_label(red, msg);
@@ -39,6 +44,6 @@ impl ViewerApp {
             });
         });
 
-        open_clicked
+        request
     }
 }

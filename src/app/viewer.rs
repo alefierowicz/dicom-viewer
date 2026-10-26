@@ -13,16 +13,16 @@ pub(super) struct View {
 
 impl ViewerApp {
     pub(super) fn show_main(&mut self, ui: &mut egui::Ui) {
-        let previous_frame = self.frame;
+        let previous_frame: usize = self.frame;
 
         self.handle_keys(ui);
-        let open_clicked = self.show_sidebar(ui);
+        let request = self.show_sidebar(ui);
         self.show_controls(ui); // must stay before update_texture, or slider changes get missed
         self.update_texture(ui, previous_frame);
         self.show_canvas(ui);
 
-        if open_clicked {
-            self.open_dialog();
+        if let Some(request) = request {
+            self.open(request);
         }
     }
 
