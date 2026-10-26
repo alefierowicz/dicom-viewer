@@ -19,3 +19,20 @@ Przeglądarka obrazów medycznych `.dcm` wraz z ich metadanymi.
 - Program w osobnym panelu pokazuje metadane z nagłówka DICOM, np. PatientName, PatientID, StudyDate, Modality, Rows, Columns, PixelSpacing, SliceThickness, etc. 
     - Uwaga: nie wszystkie dane mogą być w pliku dostępne, idealnie jakby program wyświetlał wszystkie niepuste metadane.
 - Opcjonalnie na ocenę 5.0: obsługa folderu z wieloma plikami DICOM (np. całe badanie CT)
+
+## Uruchamianie
+### Rust
+Do uruchomienia potrzebne są Rust i jego package manager - Cargo [dostępne pod tym linkiem.](https://rust-lang.org/tools/install/)
+
+... albo:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### Uruchamianie
+
+```bash
+cargo run --release
+```
+
