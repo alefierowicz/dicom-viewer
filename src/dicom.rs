@@ -81,3 +81,5 @@ pub fn load_file(path: &Path) -> Result<LoadedFile, String> {
     let volume = Volume::build(&obj).map_err(|e| -> String { format!("failed to build volume: {e}") })?;
     Ok(LoadedFile { name, metadata, volume, instance })
 }
+
+// lalaalalalall
